@@ -54,20 +54,31 @@ async function embedImageNode<T extends HTMLElement | SVGImageElement>(
 
   const dataURL = await resourceToDataURL(url, getMimeType(url), options)
   await new Promise((resolve, reject) => {
-    clonedNode.onload = resolve
+    let resolveTimer: ReturnType<typeof setTimeout>
+    const doResolve = (args?: unknown) => {
+      clearTimeout(resolveTimer)
+      resolve(args)
+    }
+
+    const doReject = (args?: unknown) => {
+      clearTimeout(resolveTimer)
+      reject(args)
+    }
+
+    clonedNode.onload = doResolve
     clonedNode.onerror = options.onImageErrorHandler
       ? (...attributes) => {
           try {
-            resolve(options.onImageErrorHandler!(...attributes))
+            doResolve(options.onImageErrorHandler!(...attributes))
           } catch (error) {
-            reject(error)
+            doReject(error)
           }
         }
-      : reject
+      : doReject
 
     const image = clonedNode as HTMLImageElement
     if (image.decode) {
-      image.decode = resolve as any
+      image.decode = doResolve as any
     }
 
     if (image.loading === 'lazy') {
@@ -79,6 +90,9 @@ async function embedImageNode<T extends HTMLElement | SVGImageElement>(
       clonedNode.src = dataURL
     } else {
       clonedNode.href.baseVal = dataURL
+      resolveTimer = setTimeout(() => {
+        doResolve()
+      }, 2000)
     }
   })
 }
