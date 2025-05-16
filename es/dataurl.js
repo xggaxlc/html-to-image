@@ -40,18 +40,24 @@ function getCacheKey(url, contentType, includeQueryParams) {
     return contentType ? `[${contentType}]${key}` : key;
 }
 export async function resourceToDataURL(resourceUrl, contentType, options) {
-    const cacheKey = getCacheKey(resourceUrl, contentType, options.includeQueryParams);
+    let resourceUrlToFetch = resourceUrl;
+    if (options.transformResourceUrl &&
+        typeof options.transformResourceUrl === 'function') {
+        resourceUrlToFetch = options.transformResourceUrl(resourceUrl);
+    }
+    const cacheKey = getCacheKey(resourceUrlToFetch, contentType, options.includeQueryParams);
     if (cache[cacheKey] != null) {
         return cache[cacheKey];
     }
     // ref: https://developer.mozilla.org/en/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest#Bypassing_the_cache
     if (options.cacheBust) {
         // eslint-disable-next-line no-param-reassign
-        resourceUrl += (/\?/.test(resourceUrl) ? '&' : '?') + new Date().getTime();
+        resourceUrlToFetch +=
+            (/\?/.test(resourceUrlToFetch) ? '&' : '?') + new Date().getTime();
     }
     let dataURL;
     try {
-        const content = await fetchAsDataURL(resourceUrl, options.fetchRequestInit, ({ res, result }) => {
+        const content = await fetchAsDataURL(resourceUrlToFetch, options.fetchRequestInit, ({ res, result }) => {
             if (!contentType) {
                 // eslint-disable-next-line no-param-reassign
                 contentType = res.headers.get('Content-Type') || '';
@@ -62,7 +68,7 @@ export async function resourceToDataURL(resourceUrl, contentType, options) {
     }
     catch (error) {
         dataURL = options.imagePlaceholder || '';
-        let msg = `Failed to fetch resource: ${resourceUrl}`;
+        let msg = `Failed to fetch resource: ${resourceUrlToFetch}`;
         if (error) {
             msg = typeof error === 'string' ? error : error.message;
         }
@@ -70,7 +76,9 @@ export async function resourceToDataURL(resourceUrl, contentType, options) {
             console.warn(msg);
         }
     }
-    cache[cacheKey] = dataURL;
+    if (!options.disabledCacheDataUrl) {
+        cache[cacheKey] = dataURL;
+    }
     return dataURL;
 }
 //# sourceMappingURL=dataurl.js.map

@@ -93,4 +93,12 @@ export interface Options {
      * An event handler for the error event when any image in html has problem with loading.
      */
     onImageErrorHandler?: OnErrorEventHandler;
+    /**
+     * A function to transform the resource URL before fetching.
+     */
+    transformResourceUrl?: (resourceUrl: string) => string;
+    /**
+     * A boolean to turn off cache for data URL.
+     */
+    disabledCacheDataUrl?: boolean;
 }
