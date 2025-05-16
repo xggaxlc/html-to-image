@@ -116,6 +116,8 @@ export async function resourceToDataURL(
     }
   }
 
-  cache[cacheKey] = dataURL
+  if (!options.disabledCacheDataUrl) {
+    cache[cacheKey] = dataURL
+  }
   return dataURL
 }
